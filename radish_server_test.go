@@ -1,6 +1,7 @@
 package radish_test
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/Artamus/radish"
@@ -26,5 +27,13 @@ func TestRadishServer(t *testing.T) {
 		if got != want {
 			t.Errorf("got %s, want %s", got, want)
 		}
+	})
+}
+
+func makeRedisClient(port int) *redis.Client {
+	return redis.NewClient(&redis.Options{
+		Addr:     "localhost:" + strconv.Itoa(port),
+		Password: "", // no password set
+		DB:       0,  // use default DB
 	})
 }
