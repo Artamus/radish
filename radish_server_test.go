@@ -9,15 +9,17 @@ import (
 )
 
 func TestRadishServer(t *testing.T) {
-	t.Run("it responds PONG to PING", func(t *testing.T) {
+	t.Run("it responds PONG to the PING command", func(t *testing.T) {
 		server := mustMakeRadishServer(t)
 		defer server.Close()
 		go func() {
 			server.Listen()
 		}()
-		rdb := makeRedisClient(6379)
+		client := makeRedisClient(6379)
+		defer client.Close()
 
-		got := rdb.Ping().Val()
+		got := client.Ping().Val()
+
 		assertResponse(t, got, "PONG")
 	})
 
@@ -27,14 +29,28 @@ func TestRadishServer(t *testing.T) {
 		go func() {
 			server.Listen()
 		}()
-		rdb := makeRedisClient(6379)
+		client := makeRedisClient(6379)
+		defer client.Close()
 
-		want := "PONG"
-		got := rdb.Ping().Val()
-		assertResponse(t, got, want)
+		got := client.Ping().Val()
+		assertResponse(t, got, "PONG")
 
-		got = rdb.Ping().Val()
-		assertResponse(t, got, want)
+		got = client.Ping().Val()
+		assertResponse(t, got, "PONG")
+	})
+
+	t.Run("it allows multiple clients to send commands", func(t *testing.T) {
+		server := mustMakeRadishServer(t)
+		defer server.Close()
+		go func() {
+			server.Listen()
+		}()
+
+		client1 := makeRedisClient(6379)
+		client2 := makeRedisClient(6379)
+
+		assertResponse(t, client1.Ping().Val(), "PONG")
+		assertResponse(t, client2.Ping().Val(), "PONG")
 	})
 }
 
@@ -50,9 +66,9 @@ func mustMakeRadishServer(t testing.TB) *radish.RadishServer {
 
 func makeRedisClient(port int) *redis.Client {
 	return redis.NewClient(&redis.Options{
-		Addr:     "localhost:" + strconv.Itoa(port),
-		Password: "", // no password set
-		DB:       0,  // use default DB
+		Addr:     "0.0.0.0:" + strconv.Itoa(port),
+		Password: "",
+		DB:       0,
 	})
 }
 

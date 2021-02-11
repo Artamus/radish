@@ -1,7 +1,6 @@
 package radish
 
 import (
-	"bufio"
 	"fmt"
 	"net"
 	"strconv"
@@ -24,8 +23,12 @@ func NewRadishServer(port int) (*RadishServer, error) {
 
 func (r *RadishServer) Listen() {
 	for {
-		conn, _ := r.listener.Accept()
-		handleConnection(conn)
+		conn, err := r.listener.Accept()
+		if err != nil {
+			return
+		}
+
+		go handleConnection(conn)
 	}
 }
 
@@ -34,8 +37,12 @@ func (r *RadishServer) Close() {
 }
 
 func handleConnection(conn net.Conn) {
-	scanner := bufio.NewScanner(conn)
-	for scanner.Scan() {
+	defer conn.Close()
+
+	for {
+		buf := make([]byte, 128)
+		conn.Read(buf)
+
 		conn.Write([]byte("+PONG\r\n"))
 	}
 }
