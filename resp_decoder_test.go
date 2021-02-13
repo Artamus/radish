@@ -2,10 +2,14 @@ package radish
 
 import "testing"
 
-func TestRESPDecoder(t *testing.T) {
+func TestRESPSimpleStrings(t *testing.T) {
 	t.Run("it decodes simple strings", func(t *testing.T) {
-		assertEqual(t, Decode("+OK\r\n"), "OK")
-		assertEqual(t, Decode("+HEY\r\n"), "HEY")
+		got, _ := Decode("+OK\r\n")
+		assertEqual(t, got, "OK")
+
+		got, _ = Decode("+HEY\r\n")
+		assertEqual(t, got, "HEY")
+	})
 	})
 }
 
