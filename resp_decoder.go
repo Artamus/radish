@@ -1,7 +1,10 @@
 package radish
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"strconv"
 	"strings"
 )
@@ -19,40 +22,57 @@ func Decode(encoded string) (string, error) {
 
 	switch firstChar {
 	case '+':
-		return decodeSimpleString(encoded)
+		return decodeSimpleString(encodedReader)
 	case '$':
-		return decodeBulkString(encoded)
+		return decodeBulkString(encodedReader)
 	default:
 		return "", fmt.Errorf("unknown type of resp message provided")
 	}
 }
 
-func decodeSimpleString(encoded string) (string, error) {
-	if !strings.HasPrefix(encoded, "+") || !strings.HasSuffix(encoded, "\r\n") {
+func decodeSimpleString(rdr io.Reader) (string, error) {
+	bufRdr := bufio.NewReader(rdr)
+
+	contents, err := readToCRLF(bufRdr)
+	if err != nil {
 		return "", IncompleteRESPError
 	}
 
-	without_prefix := strings.TrimPrefix(encoded, "+")
-	without_suffix := strings.TrimSuffix(without_prefix, "\r\n")
-
-	return without_suffix, nil
+	return contents, nil
 }
 
-func decodeBulkString(encoded string) (string, error) {
-	headerIndex := strings.Index(encoded, "\r\n")
-	if headerIndex == -1 {
-		return "", IncompleteRESPError
-	}
-	numCharacters, _ := strconv.Atoi(encoded[1:headerIndex])
+func decodeBulkString(rdr io.Reader) (string, error) {
+	bufRdr := bufio.NewReader(rdr)
+	contents, err := readToCRLF(bufRdr)
 
-	if headerIndex+2+numCharacters >= len(encoded) {
-		return "", IncompleteRESPError
-	}
-
-	if !strings.HasSuffix(encoded, "\r\n") {
+	contentLength, err := strconv.Atoi(contents)
+	if err != nil {
 		return "", IncompleteRESPError
 	}
 
-	message := encoded[headerIndex+2 : headerIndex+numCharacters+2]
-	return message, nil
+	content, err := ioutil.ReadAll(io.LimitReader(bufRdr, int64(contentLength)))
+	if len(content) != contentLength {
+		return "", IncompleteRESPError
+	}
+
+	controlBytes, err := ioutil.ReadAll(bufRdr)
+	if err != nil || string(controlBytes) != "\r\n" {
+		return "", IncompleteRESPError
+	}
+
+	return string(content), nil
+}
+
+func readToCRLF(rdr *bufio.Reader) (string, error) {
+	content, err := rdr.ReadString('\r')
+	if err != nil {
+		return "", fmt.Errorf("")
+	}
+
+	controlByte, err := rdr.ReadByte()
+	if err != nil || controlByte != '\n' {
+		return "", fmt.Errorf("")
+	}
+
+	return content[:len(content)-1], nil
 }
