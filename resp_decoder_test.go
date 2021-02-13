@@ -27,6 +27,9 @@ func TestRESPBulkStrings(t *testing.T) {
 	t.Run("it decodes bulk strings", func(t *testing.T) {
 		got, _ := Decode("$2\r\nOK\r\n")
 		assertEqual(t, got, "OK")
+
+		got, _ = Decode("$3\r\nHEY\r\n")
+		assertEqual(t, got, "HEY")
 	})
 }
 
