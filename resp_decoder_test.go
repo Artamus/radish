@@ -32,16 +32,26 @@ func TestRESPSimpleStrings(t *testing.T) {
 
 func TestRESPBulkStrings(t *testing.T) {
 	t.Run("it decodes bulk strings", func(t *testing.T) {
-		got, _ := Decode("$2\r\nOK\r\n")
-		assertEqual(t, got, "OK")
+		cases := []struct {
+			input string
+			want  string
+		}{
+			{"$2\r\nOK\r\n", "OK"}, {"$3\r\nHEY\r\n", "HEY"},
+		}
 
-		got, _ = Decode("$3\r\nHEY\r\n")
-		assertEqual(t, got, "HEY")
+		for _, c := range cases {
+			got, _ := Decode(c.input)
+			assertEqual(t, got, c.want)
+		}
 	})
 
 	t.Run("it fails on incomplete bulk strings", func(t *testing.T) {
-		_, err := Decode("$")
-		assertIncompleteRESPError(t, err)
+		cases := []string{"$"}
+
+		for _, c := range cases {
+			_, err := Decode(c)
+			assertIncompleteRESPError(t, err)
+		}
 	})
 }
 
