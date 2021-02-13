@@ -10,6 +10,10 @@ var IncompleteRESPError = fmt.Errorf("incomplete resp string")
 
 func Decode(encoded string) (string, error) {
 
+	if len(encoded) == 0 {
+		return "", IncompleteRESPError
+	}
+
 	if encoded[0] == '$' {
 		return decodeBulkString(encoded)
 	}

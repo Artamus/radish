@@ -12,7 +12,10 @@ func TestRESPSimpleStrings(t *testing.T) {
 	})
 
 	t.Run("it fails on incomplete strings", func(t *testing.T) {
-		_, err := Decode("+")
+		_, err := Decode("")
+		assertIncompleteRESPError(t, err)
+
+		_, err = Decode("+")
 		assertIncompleteRESPError(t, err)
 
 		_, err = Decode("'OK")
