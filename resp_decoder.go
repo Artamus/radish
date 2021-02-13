@@ -34,6 +34,9 @@ func decodeSimpleString(encoded string) (string, error) {
 
 func decodeBulkString(encoded string) (string, error) {
 	headerIndex := strings.Index(encoded, "\r\n")
+	if headerIndex == -1 {
+		return "", IncompleteRESPError
+	}
 	numCharacters, _ := strconv.Atoi(encoded[1:headerIndex])
 
 	message := encoded[headerIndex+2 : headerIndex+numCharacters+2]

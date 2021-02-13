@@ -11,7 +11,7 @@ func TestRESPSimpleStrings(t *testing.T) {
 		assertEqual(t, got, "HEY")
 	})
 
-	t.Run("it fails on incomplete strings", func(t *testing.T) {
+	t.Run("it fails on incomplete simple strings", func(t *testing.T) {
 		_, err := Decode("")
 		assertIncompleteRESPError(t, err)
 
@@ -33,6 +33,11 @@ func TestRESPBulkStrings(t *testing.T) {
 
 		got, _ = Decode("$3\r\nHEY\r\n")
 		assertEqual(t, got, "HEY")
+	})
+
+	t.Run("it fails on incomplete bulk strings", func(t *testing.T) {
+		_, err := Decode("$")
+		assertIncompleteRESPError(t, err)
 	})
 }
 
