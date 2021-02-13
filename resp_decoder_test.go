@@ -1,6 +1,8 @@
 package radish
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestRESPSimpleStrings(t *testing.T) {
 	t.Run("it decodes simple strings", func(t *testing.T) {
@@ -46,7 +48,7 @@ func TestRESPBulkStrings(t *testing.T) {
 	})
 
 	t.Run("it fails on incomplete bulk strings", func(t *testing.T) {
-		cases := []string{"$"}
+		cases := []string{"$", "$2", "$2\r", "$2\r\n", "$2\r\nOK", "$2\r\nOK\r"}
 
 		for _, c := range cases {
 			_, err := Decode(c)

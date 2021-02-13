@@ -39,6 +39,14 @@ func decodeBulkString(encoded string) (string, error) {
 	}
 	numCharacters, _ := strconv.Atoi(encoded[1:headerIndex])
 
+	if headerIndex+2+numCharacters >= len(encoded) {
+		return "", IncompleteRESPError
+	}
+
+	if !strings.HasSuffix(encoded, "\r\n") {
+		return "", IncompleteRESPError
+	}
+
 	message := encoded[headerIndex+2 : headerIndex+numCharacters+2]
 	return message, nil
 }
