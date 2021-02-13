@@ -10,15 +10,21 @@ var IncompleteRESPError = fmt.Errorf("incomplete resp string")
 
 func Decode(encoded string) (string, error) {
 
-	if len(encoded) == 0 {
+	encodedReader := strings.NewReader(encoded)
+
+	firstChar, err := encodedReader.ReadByte()
+	if err != nil {
 		return "", IncompleteRESPError
 	}
 
-	if encoded[0] == '$' {
+	switch firstChar {
+	case '+':
+		return decodeSimpleString(encoded)
+	case '$':
 		return decodeBulkString(encoded)
+	default:
+		return "", fmt.Errorf("unknown type of resp message provided")
 	}
-
-	return decodeSimpleString(encoded)
 }
 
 func decodeSimpleString(encoded string) (string, error) {
