@@ -4,25 +4,29 @@ import "testing"
 
 func TestRESPSimpleStrings(t *testing.T) {
 	t.Run("it decodes simple strings", func(t *testing.T) {
-		got, _ := Decode("+OK\r\n")
-		assertEqual(t, got, "OK")
+		cases := []struct {
+			input string
+			want  string
+		}{
+			{"+OK\r\n", "OK"},
+			{"+HEY\r\n", "HEY"},
+		}
 
-		got, _ = Decode("+HEY\r\n")
-		assertEqual(t, got, "HEY")
+		for _, c := range cases {
+			got, _ := Decode(c.input)
+			assertEqual(t, got, c.want)
+		}
 	})
 
 	t.Run("it fails on incomplete simple strings", func(t *testing.T) {
-		_, err := Decode("")
-		assertIncompleteRESPError(t, err)
+		cases := []string{
+			"", "+", "+OK", "+OK\r",
+		}
 
-		_, err = Decode("+")
-		assertIncompleteRESPError(t, err)
-
-		_, err = Decode("'OK")
-		assertIncompleteRESPError(t, err)
-
-		_, err = Decode("+OK\r")
-		assertIncompleteRESPError(t, err)
+		for _, c := range cases {
+			_, err := Decode(c)
+			assertIncompleteRESPError(t, err)
+		}
 	})
 }
 
