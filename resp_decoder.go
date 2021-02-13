@@ -5,10 +5,12 @@ import (
 	"strings"
 )
 
+var IncompleteRESPError = fmt.Errorf("incomplete resp string")
+
 func Decode(encoded string) (string, error) {
 
 	if !strings.HasPrefix(encoded, "+") || !strings.HasSuffix(encoded, "\r\n") {
-		return "", fmt.Errorf("incomplete resp string")
+		return "", IncompleteRESPError
 	}
 
 	without_prefix := strings.TrimPrefix(encoded, "+")

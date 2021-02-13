@@ -13,15 +13,13 @@ func TestRESPSimpleStrings(t *testing.T) {
 
 	t.Run("it fails on incomplete strings", func(t *testing.T) {
 		_, err := Decode("+")
-
-		if err == nil {
-			t.Error("wanted error, but got none")
-		}
+		assertIncompleteRESPError(t, err)
 
 		_, err = Decode("'OK")
-		if err == nil {
-			t.Error("wanted error, but got none")
-		}
+		assertIncompleteRESPError(t, err)
+
+		_, err = Decode("+OK\r")
+		assertIncompleteRESPError(t, err)
 	})
 }
 
@@ -30,5 +28,17 @@ func assertEqual(t testing.TB, got, want string) {
 
 	if got != want {
 		t.Errorf("got %s, want %s", got, want)
+	}
+}
+
+func assertIncompleteRESPError(t testing.TB, err error) {
+	t.Helper()
+
+	if err == nil {
+		t.Fatal("want error, but got none")
+	}
+
+	if err != IncompleteRESPError {
+		t.Errorf("want incomplete resp error, got %v", err)
 	}
 }
