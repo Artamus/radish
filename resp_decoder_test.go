@@ -17,6 +17,11 @@ func TestRESPSimpleStrings(t *testing.T) {
 		if err == nil {
 			t.Error("wanted error, but got none")
 		}
+
+		_, err = Decode("'OK")
+		if err == nil {
+			t.Error("wanted error, but got none")
+		}
 	})
 }
 
