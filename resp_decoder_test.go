@@ -76,6 +76,15 @@ func TestRESPArrays(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("it fails on incomplete arrays", func(t *testing.T) {
+		cases := []string{"*", "*1", "*1\r\n", "*1\r\n$4", "*2\r\n$4\r\nECHO\r\n"}
+
+		for _, c := range cases {
+			_, err := Decode(c)
+			assertIncompleteRESPError(t, err)
+		}
+	})
 }
 
 func assertStringEqual(t testing.TB, got, want string) {
