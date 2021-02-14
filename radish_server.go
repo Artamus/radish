@@ -8,26 +8,29 @@ import (
 	"strings"
 )
 
-type RadishServer struct {
+// Server encapsulates a TCP server that can serve RESP commands
+type Server struct {
 	listener    net.Listener
 	connClients map[net.Conn]*client
 	storage     map[string]string
 }
 
-func NewRadishServer(port int, keyValueStorage map[string]string) (*RadishServer, error) {
+// NewServer is used as the constructor to assemble new servers
+func NewServer(port int, keyValueStorage map[string]string) (*Server, error) {
 	l, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to bind to port %d, %v", port, err)
 	}
 
-	return &RadishServer{
+	return &Server{
 		listener:    l,
 		connClients: make(map[net.Conn]*client),
 		storage:     keyValueStorage,
 	}, nil
 }
 
-func (r *RadishServer) Listen() {
+// Listen makes the server start listening for incoming connections on the port specified in the constructor
+func (r *Server) Listen() {
 
 	serverChan := make(chan net.Conn)
 	connChan := make(chan net.Conn)
@@ -42,7 +45,7 @@ func (r *RadishServer) Listen() {
 			serverChan <- conn
 		}()
 
-		for conn, _ := range r.connClients {
+		for conn := range r.connClients {
 			go func(conn net.Conn) {
 				buf := make([]byte, 0)
 				conn.Read(buf)
@@ -65,11 +68,12 @@ func (r *RadishServer) Listen() {
 	}
 }
 
-func (r *RadishServer) Close() {
+// Close stops the listener from accepting any more incoming connections
+func (r *Server) Close() {
 	r.listener.Close()
 }
 
-func (r *RadishServer) handleClient(client *client) {
+func (r *Server) handleClient(client *client) {
 	err := client.readAvailable()
 	if err != nil {
 		delete(r.connClients, client.socket)
@@ -86,7 +90,7 @@ func (r *RadishServer) handleClient(client *client) {
 	}
 }
 
-func (r *RadishServer) handleCommand(client *client, command *command) {
+func (r *Server) handleCommand(client *client, command *command) {
 
 	switch strings.ToUpper(command.action) {
 	case "PING":
