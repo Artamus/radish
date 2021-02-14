@@ -11,29 +11,30 @@ import (
 
 var IncompleteRESPError = fmt.Errorf("incomplete resp string")
 
-func Decode(encoded string) (string, error) {
+// Decode returns the decoded body as either string or a slice of strings
+func Decode(encoded string) (interface{}, error) {
+	rdr := bufio.NewReader(strings.NewReader(encoded))
+	return decode(rdr)
+}
 
-	encodedReader := strings.NewReader(encoded)
-
-	firstChar, err := encodedReader.ReadByte()
+func decode(rdr *bufio.Reader) (interface{}, error) {
+	firstChar, err := rdr.ReadByte()
 	if err != nil {
 		return "", IncompleteRESPError
 	}
 
 	switch firstChar {
 	case '+':
-		return decodeSimpleString(encodedReader)
+		return decodeSimpleString(rdr)
 	case '$':
-		return decodeBulkString(encodedReader)
+		return decodeBulkString(rdr)
 	default:
 		return "", fmt.Errorf("unknown type of resp message provided")
 	}
 }
 
-func decodeSimpleString(rdr io.Reader) (string, error) {
-	bufRdr := bufio.NewReader(rdr)
-
-	contents, err := readToCRLF(bufRdr)
+func decodeSimpleString(rdr *bufio.Reader) (string, error) {
+	contents, err := readToCRLF(rdr)
 	if err != nil {
 		return "", IncompleteRESPError
 	}
@@ -41,21 +42,19 @@ func decodeSimpleString(rdr io.Reader) (string, error) {
 	return contents, nil
 }
 
-func decodeBulkString(rdr io.Reader) (string, error) {
-	bufRdr := bufio.NewReader(rdr)
-	contents, err := readToCRLF(bufRdr)
-
+func decodeBulkString(rdr *bufio.Reader) (string, error) {
+	contents, err := readToCRLF(rdr)
 	contentLength, err := strconv.Atoi(contents)
 	if err != nil {
 		return "", IncompleteRESPError
 	}
 
-	content, err := ioutil.ReadAll(io.LimitReader(bufRdr, int64(contentLength)))
+	content, err := ioutil.ReadAll(io.LimitReader(rdr, int64(contentLength)))
 	if len(content) != contentLength {
 		return "", IncompleteRESPError
 	}
 
-	controlBytes, err := ioutil.ReadAll(bufRdr)
+	controlBytes, err := ioutil.ReadAll(rdr)
 	if err != nil || string(controlBytes) != "\r\n" {
 		return "", IncompleteRESPError
 	}

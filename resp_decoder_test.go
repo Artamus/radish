@@ -17,7 +17,8 @@ func TestRESPSimpleStrings(t *testing.T) {
 
 		for _, c := range cases {
 			got, _ := Decode(c.input)
-			assertStringEqual(t, got, c.want)
+			gotValue, _ := got.(string)
+			assertStringEqual(t, gotValue, c.want)
 		}
 	})
 
@@ -44,7 +45,8 @@ func TestRESPBulkStrings(t *testing.T) {
 
 		for _, c := range cases {
 			got, _ := Decode(c.input)
-			assertStringEqual(t, got, c.want)
+			gotValue, _ := got.(string)
+			assertStringEqual(t, gotValue, c.want)
 		}
 	})
 
