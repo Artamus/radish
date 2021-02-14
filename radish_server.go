@@ -107,6 +107,24 @@ func (r *RadishServer) handleCommand(client *client, command *command) {
 			return
 		}
 		client.write(fmt.Sprintf("+%s\r\n", value))
+	case "SET":
+		key := command.args[0]
+		keyString, ok := key.(string)
+		if !ok {
+			client.write(fmt.Sprintf("-ERR unknown key '%v'\r\n", key))
+			return
+		}
+
+		value := command.args[1]
+		valueString, ok := value.(string)
+		if !ok {
+			client.write(fmt.Sprintf("-ERR unknown value '%v'\r\n", value))
+			return
+		}
+
+		r.storage[keyString] = valueString
+
+		client.write("+OK\r\n")
 	default:
 		response := fmt.Sprintf("-ERR unknown command '%s'\r\n", command.action)
 		client.write(response)
