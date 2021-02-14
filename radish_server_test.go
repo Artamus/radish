@@ -118,10 +118,10 @@ func TestRadishServer(t *testing.T) {
 	})
 }
 
-func mustMakeRadishServer(t testing.TB, storage map[string]string) *radish.RadishServer {
+func mustMakeRadishServer(t testing.TB, storage map[string]string) *radish.Server {
 	t.Helper()
 
-	server, err := radish.NewRadishServer(6379, storage)
+	server, err := radish.NewServer(6379, storage)
 	if err != nil {
 		t.Fatalf("Failed to start server: %v", err)
 	}

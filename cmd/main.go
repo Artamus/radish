@@ -9,7 +9,7 @@ import (
 func main() {
 	storage := make(map[string]string)
 
-	server, err := radish.NewRadishServer(6379, storage)
+	server, err := radish.NewServer(6379, storage)
 	if err != nil {
 		fmt.Printf("Failed to start Radish server, %v", err)
 	}
