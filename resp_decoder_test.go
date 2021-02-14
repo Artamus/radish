@@ -102,7 +102,7 @@ func assertIncompleteRESPError(t testing.TB, err error) {
 		t.Fatal("want error, but got none")
 	}
 
-	if err != IncompleteRESPError {
+	if err != ErrIncompleteRESP {
 		t.Errorf("want incomplete resp error, got %v", err)
 	}
 }

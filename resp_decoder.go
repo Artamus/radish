@@ -9,7 +9,8 @@ import (
 	"strings"
 )
 
-var IncompleteRESPError = fmt.Errorf("incomplete resp string")
+// ErrIncompleteRESP is returned when the encoded string fed to Decode is not valid
+var ErrIncompleteRESP = fmt.Errorf("incomplete resp string")
 
 // Decode returns the decoded body as either string or a slice of strings
 func Decode(encoded string) (interface{}, error) {
@@ -20,7 +21,7 @@ func Decode(encoded string) (interface{}, error) {
 func decode(rdr *bufio.Reader) (interface{}, error) {
 	firstChar, err := rdr.ReadByte()
 	if err != nil {
-		return "", IncompleteRESPError
+		return "", ErrIncompleteRESP
 	}
 
 	switch firstChar {
@@ -38,7 +39,7 @@ func decode(rdr *bufio.Reader) (interface{}, error) {
 func decodeSimpleString(rdr *bufio.Reader) (string, error) {
 	contents, err := readToCRLF(rdr)
 	if err != nil {
-		return "", IncompleteRESPError
+		return "", ErrIncompleteRESP
 	}
 
 	return contents, nil
@@ -48,17 +49,17 @@ func decodeBulkString(rdr *bufio.Reader) (string, error) {
 	length, err := readToCRLF(rdr)
 	contentLength, err := strconv.Atoi(length)
 	if err != nil {
-		return "", IncompleteRESPError
+		return "", ErrIncompleteRESP
 	}
 
 	content, err := ioutil.ReadAll(io.LimitReader(rdr, int64(contentLength)))
 	if len(content) != contentLength {
-		return "", IncompleteRESPError
+		return "", ErrIncompleteRESP
 	}
 
 	controlBytes, err := ioutil.ReadAll(io.LimitReader(rdr, 2))
 	if err != nil || string(controlBytes) != "\r\n" {
-		return "", IncompleteRESPError
+		return "", ErrIncompleteRESP
 	}
 
 	return string(content), nil
@@ -68,7 +69,7 @@ func decodeArray(rdr *bufio.Reader) ([]interface{}, error) {
 	content, err := readToCRLF(rdr)
 	numItems, err := strconv.Atoi(content)
 	if err != nil {
-		return make([]interface{}, 0), IncompleteRESPError
+		return make([]interface{}, 0), ErrIncompleteRESP
 	}
 
 	results := make([]interface{}, numItems)
@@ -76,7 +77,7 @@ func decodeArray(rdr *bufio.Reader) ([]interface{}, error) {
 		decoded, err := decode(rdr)
 
 		if err != nil {
-			return make([]interface{}, 0), IncompleteRESPError
+			return make([]interface{}, 0), ErrIncompleteRESP
 		}
 		results[i] = decoded
 	}

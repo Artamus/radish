@@ -28,7 +28,7 @@ func (c *client) readAvailable() error {
 
 func (c *client) consumeCommand() *command {
 	decoded, err := Decode(string(c.buffer))
-	if err != nil && err == IncompleteRESPError {
+	if err != nil && err == ErrIncompleteRESP {
 		return nil
 	}
 
