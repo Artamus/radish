@@ -12,16 +12,18 @@ import (
 // ErrIncompleteRESP is returned when the encoded string fed to Decode is not valid
 var ErrIncompleteRESP = fmt.Errorf("incomplete resp string")
 
+var emptyResponse = make([]string, 0)
+
 // Decode returns the decoded body as either string or a slice of strings
-func Decode(encoded string) (interface{}, error) {
+func Decode(encoded string) ([]string, error) {
 	rdr := bufio.NewReader(strings.NewReader(encoded))
 	return decode(rdr)
 }
 
-func decode(rdr *bufio.Reader) (interface{}, error) {
+func decode(rdr *bufio.Reader) ([]string, error) {
 	firstChar, err := rdr.ReadByte()
 	if err != nil {
-		return "", ErrIncompleteRESP
+		return emptyResponse, ErrIncompleteRESP
 	}
 
 	switch firstChar {
@@ -32,54 +34,54 @@ func decode(rdr *bufio.Reader) (interface{}, error) {
 	case '*':
 		return decodeArray(rdr)
 	default:
-		return "", fmt.Errorf("unknown type of resp message provided")
+		return emptyResponse, fmt.Errorf("unknown type of resp message provided")
 	}
 }
 
-func decodeSimpleString(rdr *bufio.Reader) (string, error) {
+func decodeSimpleString(rdr *bufio.Reader) ([]string, error) {
 	contents, err := readToCRLF(rdr)
 	if err != nil {
-		return "", ErrIncompleteRESP
+		return emptyResponse, ErrIncompleteRESP
 	}
 
-	return contents, nil
+	return []string{contents}, nil
 }
 
-func decodeBulkString(rdr *bufio.Reader) (string, error) {
+func decodeBulkString(rdr *bufio.Reader) ([]string, error) {
 	length, err := readToCRLF(rdr)
 	contentLength, err := strconv.Atoi(length)
 	if err != nil {
-		return "", ErrIncompleteRESP
+		return emptyResponse, ErrIncompleteRESP
 	}
 
 	content, err := ioutil.ReadAll(io.LimitReader(rdr, int64(contentLength)))
 	if len(content) != contentLength {
-		return "", ErrIncompleteRESP
+		return emptyResponse, ErrIncompleteRESP
 	}
 
 	controlBytes, err := ioutil.ReadAll(io.LimitReader(rdr, 2))
 	if err != nil || string(controlBytes) != "\r\n" {
-		return "", ErrIncompleteRESP
+		return emptyResponse, ErrIncompleteRESP
 	}
 
-	return string(content), nil
+	return []string{string(content)}, nil
 }
 
-func decodeArray(rdr *bufio.Reader) ([]interface{}, error) {
+func decodeArray(rdr *bufio.Reader) ([]string, error) {
 	content, err := readToCRLF(rdr)
 	numItems, err := strconv.Atoi(content)
 	if err != nil {
-		return make([]interface{}, 0), ErrIncompleteRESP
+		return emptyResponse, ErrIncompleteRESP
 	}
 
-	results := make([]interface{}, numItems)
+	results := make([]string, 0)
 	for i := 0; i < numItems; i++ {
 		decoded, err := decode(rdr)
 
 		if err != nil {
-			return make([]interface{}, 0), ErrIncompleteRESP
+			return emptyResponse, ErrIncompleteRESP
 		}
-		results[i] = decoded
+		results = append(results, decoded...)
 	}
 
 	return results, nil

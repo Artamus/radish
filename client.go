@@ -32,15 +32,13 @@ func (c *client) consumeCommand() *command {
 		return nil
 	}
 
-	c.buffer = make([]byte, 0)
-
-	decodedValue, ok := decoded.(string)
-	if ok {
-		return newCommand(decodedValue, nil)
+	if len(decoded) == 0 {
+		return nil
 	}
 
-	decodedSlice, _ := decoded.([]interface{})
-	return newCommand(decodedSlice[0].(string), decodedSlice[1:])
+	c.buffer = make([]byte, 0)
+
+	return newCommand(decoded[0], decoded[1:])
 }
 
 func (c *client) write(message string) {
@@ -49,9 +47,9 @@ func (c *client) write(message string) {
 
 type command struct {
 	action string
-	args   []interface{}
+	args   []string
 }
 
-func newCommand(action string, args []interface{}) *command {
+func newCommand(action string, args []string) *command {
 	return &command{action: action, args: args}
 }

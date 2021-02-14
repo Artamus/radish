@@ -7,18 +7,14 @@ import (
 
 func TestRESPSimpleStrings(t *testing.T) {
 	t.Run("it decodes simple strings", func(t *testing.T) {
-		cases := []struct {
-			input string
-			want  string
-		}{
-			{"+OK\r\n", "OK"},
-			{"+HEY\r\n", "HEY"},
+		cases := []respTestData{
+			{"+OK\r\n", []string{"OK"}},
+			{"+HEY\r\n", []string{"HEY"}},
 		}
 
 		for _, c := range cases {
-			got, _ := Decode(c.input)
-			gotValue, _ := got.(string)
-			assertStringEqual(t, gotValue, c.want)
+			got, _ := Decode(c.encoded)
+			assertDecoded(t, got, c.decoded)
 		}
 	})
 
@@ -36,17 +32,13 @@ func TestRESPSimpleStrings(t *testing.T) {
 
 func TestRESPBulkStrings(t *testing.T) {
 	t.Run("it decodes bulk strings", func(t *testing.T) {
-		cases := []struct {
-			input string
-			want  string
-		}{
-			{"$2\r\nOK\r\n", "OK"}, {"$3\r\nHEY\r\n", "HEY"},
+		cases := []respTestData{
+			{"$2\r\nOK\r\n", []string{"OK"}}, {"$3\r\nHEY\r\n", []string{"HEY"}},
 		}
 
 		for _, c := range cases {
-			got, _ := Decode(c.input)
-			gotValue, _ := got.(string)
-			assertStringEqual(t, gotValue, c.want)
+			got, _ := Decode(c.encoded)
+			assertDecoded(t, got, c.decoded)
 		}
 	})
 
@@ -62,18 +54,13 @@ func TestRESPBulkStrings(t *testing.T) {
 
 func TestRESPArrays(t *testing.T) {
 	t.Run("it decodes arrays", func(t *testing.T) {
-		cases := []struct {
-			input string
-			want  []interface{}
-		}{
-			{"*1\r\n$4\r\nPING\r\n", []interface{}{"PING"}}, {"*2\r\n$4\r\nECHO\r\n$3\r\nhey\r\n", []interface{}{"ECHO", "hey"}},
+		cases := []respTestData{
+			{"*1\r\n$4\r\nPING\r\n", []string{"PING"}}, {"*2\r\n$4\r\nECHO\r\n$3\r\nhey\r\n", []string{"ECHO", "hey"}},
 		}
 
 		for _, c := range cases {
-			got, _ := Decode(c.input)
-			if !reflect.DeepEqual(got, c.want) {
-				t.Errorf("got %v, want %v", got, c.want)
-			}
+			got, _ := Decode(c.encoded)
+			assertDecoded(t, got, c.decoded)
 		}
 	})
 
@@ -87,11 +74,11 @@ func TestRESPArrays(t *testing.T) {
 	})
 }
 
-func assertStringEqual(t testing.TB, got, want string) {
+func assertDecoded(t testing.TB, got, want []string) {
 	t.Helper()
 
-	if got != want {
-		t.Errorf("got %s, want %s", got, want)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got '%v', want '%v'", got, want)
 	}
 }
 
@@ -105,4 +92,9 @@ func assertIncompleteRESPError(t testing.TB, err error) {
 	if err != ErrIncompleteRESP {
 		t.Errorf("want incomplete resp error, got %v", err)
 	}
+}
+
+type respTestData struct {
+	encoded string
+	decoded []string
 }
