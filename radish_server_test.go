@@ -54,6 +54,19 @@ func TestRadishServer(t *testing.T) {
 		assertResponse(t, client1.Ping().Val(), "PONG")
 		assertResponse(t, client2.Ping().Val(), "PONG")
 	})
+
+	t.Run("it responds to ECHO", func(t *testing.T) {
+		server := mustMakeRadishServer(t)
+		defer server.Close()
+		go func() {
+			server.Listen()
+		}()
+		client := makeRedisClient(6379)
+		defer client.Close()
+
+		got := client.Echo("hey").Val()
+		assertResponse(t, got, "hey")
+	})
 }
 
 func mustMakeRadishServer(t testing.TB) *radish.RadishServer {

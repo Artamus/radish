@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 )
 
 type RadishServer struct {
@@ -72,5 +73,27 @@ func (r *RadishServer) handleClient(client *client) {
 		return
 	}
 
-	client.write("+PONG\r\n")
+	for {
+		command := client.consumeCommand()
+		if command == nil {
+			break
+		}
+
+		handleCommand(client, command)
+	}
+}
+
+func handleCommand(client *client, command *command) {
+
+	switch strings.ToUpper(command.action) {
+	case "PING":
+		client.write("+PONG\r\n")
+	case "ECHO":
+		firstArg := command.args[0]
+		response := fmt.Sprintf("+%s\r\n", firstArg)
+		client.write(response)
+	default:
+		response := fmt.Sprintf("-ERR unknown command '%s'\r\n", command.action)
+		client.write(response)
+	}
 }

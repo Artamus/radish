@@ -26,6 +26,32 @@ func (c *client) readAvailable() error {
 	return nil
 }
 
+func (c *client) consumeCommand() *command {
+	decoded, err := Decode(string(c.buffer))
+	if err != nil && err == IncompleteRESPError {
+		return nil
+	}
+
+	c.buffer = make([]byte, 0)
+
+	decodedValue, ok := decoded.(string)
+	if ok {
+		return newCommand(decodedValue, nil)
+	}
+
+	decodedSlice, _ := decoded.([]interface{})
+	return newCommand(decodedSlice[0].(string), decodedSlice[1:])
+}
+
 func (c *client) write(message string) {
 	c.socket.Write([]byte(message))
+}
+
+type command struct {
+	action string
+	args   []interface{}
+}
+
+func newCommand(action string, args []interface{}) *command {
+	return &command{action: action, args: args}
 }
