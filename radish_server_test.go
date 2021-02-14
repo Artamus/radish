@@ -3,6 +3,7 @@ package radish_test
 import (
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/Artamus/radish"
 	"github.com/go-redis/redis"
@@ -82,16 +83,30 @@ func TestRadishServer(t *testing.T) {
 	})
 
 	t.Run("it saves value with SET", func(t *testing.T) {
-		spyStorage := make(map[string]string)
-		server := mustMakeStartRadishServer(t, spyStorage)
+		storageDouble := make(map[string]string)
+		server := mustMakeStartRadishServer(t, storageDouble)
 		defer server.Close()
 		client := makeRedisClient(6379)
 		defer client.Close()
 
 		client.Set("otherkey", "othervalue", 0)
 
-		if spyStorage["otherkey"] != "othervalue" {
-			t.Errorf("expected new value to be in storage, but it wasn't")
+		assertKeyValInStorage(t, storageDouble, "otherkey", "othervalue")
+	})
+
+	t.Run("it removes key after expiry", func(t *testing.T) {
+		storageDouble := make(map[string]string)
+		server := mustMakeStartRadishServer(t, storageDouble)
+		defer server.Close()
+		client := makeRedisClient(6379)
+		defer client.Close()
+
+		client.Set("otherkey", "othervalue", 5*time.Millisecond)
+		assertKeyValInStorage(t, storageDouble, "otherkey", "othervalue")
+
+		time.Sleep(6 * time.Millisecond)
+		if _, ok := storageDouble["otherkey"]; ok {
+			t.Errorf("got value in storage after expiry")
 		}
 	})
 }
@@ -123,5 +138,13 @@ func assertResponse(t testing.TB, got, want string) {
 
 	if got != want {
 		t.Errorf("got %s, want %s", got, want)
+	}
+}
+
+func assertKeyValInStorage(t testing.TB, storage map[string]string, key, value string) {
+	t.Helper()
+
+	if val, ok := storage[key]; !ok || val != value {
+		t.Errorf("want key '%s' to have value '%s' in storage", key, value)
 	}
 }

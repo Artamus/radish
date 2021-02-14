@@ -6,6 +6,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Server encapsulates a TCP server that can serve RESP commands
@@ -110,6 +111,12 @@ func (r *Server) handleCommand(client *client, command *command) {
 	case "SET":
 		key := command.args[0]
 		value := command.args[1]
+
+		if len(command.args) > 2 {
+			fmt.Println(command.args)
+			setExpiry(r.storage, key, command.args[2], command.args[3])
+		}
+
 		r.storage[key] = value
 
 		client.write("+OK\r\n")
@@ -118,4 +125,15 @@ func (r *Server) handleCommand(client *client, command *command) {
 		response := fmt.Sprintf("-ERR unknown command '%s'\r\n", command.action)
 		client.write(response)
 	}
+}
+
+func setExpiry(storage map[string]string, key, timeUnitArg, timeAmountArg string) {
+	timeUnit := time.Millisecond
+	if strings.ToUpper(timeUnitArg) == "EX" {
+		timeUnit = time.Second
+	}
+
+	amount, _ := strconv.Atoi(timeAmountArg)
+
+	time.AfterFunc(time.Duration(amount)*timeUnit, func() { delete(storage, key) })
 }
