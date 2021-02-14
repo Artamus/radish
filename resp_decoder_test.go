@@ -60,6 +60,23 @@ func TestRESPBulkStrings(t *testing.T) {
 	})
 }
 
+func TestRESPArrays(t *testing.T) {
+	t.Run("it decodes arrays", func(t *testing.T) {
+		cases := []struct {
+			input string
+			want  []interface{}
+		}{
+			{"*1\r\n$4\r\nPING\r\n", []interface{}{"PING"}}, {"*2\r\n$4\r\nECHO\r\n$3\r\nhey\r\n", []interface{}{"ECHO", "hey"}},
+		}
+
+		for _, c := range cases {
+			got, _ := Decode(c.input)
+			if !reflect.DeepEqual(got, c.want) {
+				t.Errorf("got %v, want %v", got, c.want)
+			}
+		}
+	})
+}
 
 func assertStringEqual(t testing.TB, got, want string) {
 	t.Helper()
