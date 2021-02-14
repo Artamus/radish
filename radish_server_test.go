@@ -94,7 +94,7 @@ func TestRadishServer(t *testing.T) {
 		assertKeyValInStorage(t, storageDouble, "otherkey", "othervalue")
 	})
 
-	t.Run("it removes key after expiry", func(t *testing.T) {
+	t.Run("it removes key-value pair after expiry", func(t *testing.T) {
 		storageDouble := make(map[string]string)
 		server := mustMakeStartRadishServer(t, storageDouble)
 		defer server.Close()
