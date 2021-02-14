@@ -109,6 +109,21 @@ func TestRadishServer(t *testing.T) {
 			t.Errorf("got value in storage after expiry")
 		}
 	})
+
+	t.Run("it updates expiry when key is overwritten with new expiry", func(t *testing.T) {
+		storageDouble := make(map[string]string)
+		server := mustMakeStartRadishServer(t, storageDouble)
+		defer server.Close()
+		client := makeRedisClient(6379)
+		defer client.Close()
+
+		client.Set("otherkey", "othervalue", 5*time.Millisecond)
+
+		client.Set("otherkey", "somevalue", 2*time.Second)
+		time.Sleep(6 * time.Millisecond)
+
+		assertKeyValInStorage(t, storageDouble, "otherkey", "somevalue")
+	})
 }
 
 func mustMakeStartRadishServer(t testing.TB, storage map[string]string) *radish.Server {
@@ -144,7 +159,11 @@ func assertResponse(t testing.TB, got, want string) {
 func assertKeyValInStorage(t testing.TB, storage map[string]string, key, value string) {
 	t.Helper()
 
-	if val, ok := storage[key]; !ok || val != value {
-		t.Errorf("want key '%s' to have value '%s' in storage", key, value)
+	val, ok := storage[key]
+	if !ok {
+		t.Errorf("want key '%s' in storage, but got none", key)
+	}
+	if val != value {
+		t.Errorf("want value '%s', got '%s'", value, val)
 	}
 }

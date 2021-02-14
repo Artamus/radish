@@ -11,9 +11,10 @@ import (
 
 // Server encapsulates a TCP server that can serve RESP commands
 type Server struct {
-	listener    net.Listener
-	connClients map[net.Conn]*client
-	storage     map[string]string
+	listener      net.Listener
+	connClients   map[net.Conn]*client
+	storage       map[string]string
+	cancellations map[string]chan struct{}
 }
 
 // NewServer is used as the constructor to assemble new servers
@@ -24,9 +25,10 @@ func NewServer(port int, keyValueStorage map[string]string) (*Server, error) {
 	}
 
 	return &Server{
-		listener:    l,
-		connClients: make(map[net.Conn]*client),
-		storage:     keyValueStorage,
+		listener:      l,
+		connClients:   make(map[net.Conn]*client),
+		storage:       keyValueStorage,
+		cancellations: make(map[string]chan struct{}),
 	}, nil
 }
 
@@ -112,9 +114,19 @@ func (r *Server) handleCommand(client *client, command *command) {
 		key := command.args[0]
 		value := command.args[1]
 
+		cancelExpiry(r.cancellations, key)
+
 		if len(command.args) > 2 {
-			fmt.Println(command.args)
-			setExpiry(r.storage, key, command.args[2], command.args[3])
+
+			timeUnit := time.Millisecond
+			if strings.ToUpper(command.args[2]) == "EX" {
+				timeUnit = time.Second
+			}
+			amount, _ := strconv.Atoi(command.args[3])
+
+			cancellation := make(chan struct{})
+			r.cancellations[key] = cancellation
+			go r.expireKey(key, time.Duration(amount)*timeUnit, cancellation)
 		}
 
 		r.storage[key] = value
@@ -127,13 +139,20 @@ func (r *Server) handleCommand(client *client, command *command) {
 	}
 }
 
-func setExpiry(storage map[string]string, key, timeUnitArg, timeAmountArg string) {
-	timeUnit := time.Millisecond
-	if strings.ToUpper(timeUnitArg) == "EX" {
-		timeUnit = time.Second
+func (r *Server) expireKey(key string, after time.Duration, cancel chan struct{}) {
+
+	select {
+	case <-time.After(after):
+		delete(r.storage, key)
+	case <-cancel:
 	}
 
-	amount, _ := strconv.Atoi(timeAmountArg)
+	delete(r.cancellations, key)
+}
 
-	time.AfterFunc(time.Duration(amount)*timeUnit, func() { delete(storage, key) })
+func cancelExpiry(cancellations map[string]chan struct{}, key string) {
+	cancel, ok := cancellations[key]
+	if ok {
+		cancel <- struct{}{}
+	}
 }
