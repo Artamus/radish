@@ -50,8 +50,13 @@ func (r *RadishServer) Listen() {
 		case newConn := <-serverChan:
 			r.connClients[newConn] = newClient(newConn)
 		case existingConn := <-connChan:
-			client := r.connClients[existingConn]
-			handleClient(client)
+
+			client, ok := r.connClients[existingConn]
+			if !ok {
+				// TODO: Sometimes there are messages from a channel with the pointer address 0x0, not sure why, but they are not my clients
+				break
+			}
+			r.handleClient(client)
 		}
 	}
 }
@@ -60,7 +65,12 @@ func (r *RadishServer) Close() {
 	r.listener.Close()
 }
 
-func handleClient(client *client) {
-	client.readAvailable()
+func (r *RadishServer) handleClient(client *client) {
+	err := client.readAvailable()
+	if err != nil {
+		delete(r.connClients, client.socket)
+		return
+	}
+
 	client.write("+PONG\r\n")
 }
