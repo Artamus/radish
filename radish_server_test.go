@@ -8,9 +8,11 @@ import (
 	"github.com/go-redis/redis"
 )
 
+var dummyStorage = make(map[string]string)
+
 func TestRadishServer(t *testing.T) {
 	t.Run("it responds PONG to the PING command", func(t *testing.T) {
-		server := mustMakeRadishServer(t)
+		server := mustMakeRadishServer(t, dummyStorage)
 		defer server.Close()
 		go func() {
 			server.Listen()
@@ -24,7 +26,7 @@ func TestRadishServer(t *testing.T) {
 	})
 
 	t.Run("it responds to multiple commands from the same client", func(t *testing.T) {
-		server := mustMakeRadishServer(t)
+		server := mustMakeRadishServer(t, dummyStorage)
 		defer server.Close()
 		go func() {
 			server.Listen()
@@ -40,7 +42,7 @@ func TestRadishServer(t *testing.T) {
 	})
 
 	t.Run("it allows multiple clients to send commands", func(t *testing.T) {
-		server := mustMakeRadishServer(t)
+		server := mustMakeRadishServer(t, dummyStorage)
 		defer server.Close()
 		go func() {
 			server.Listen()
@@ -56,7 +58,7 @@ func TestRadishServer(t *testing.T) {
 	})
 
 	t.Run("it responds to ECHO", func(t *testing.T) {
-		server := mustMakeRadishServer(t)
+		server := mustMakeRadishServer(t, dummyStorage)
 		defer server.Close()
 		go func() {
 			server.Listen()
@@ -67,12 +69,42 @@ func TestRadishServer(t *testing.T) {
 		got := client.Echo("hey").Val()
 		assertResponse(t, got, "hey")
 	})
+
+	t.Run("it gets nil value with GET when data does not exist", func(t *testing.T) {
+		server := mustMakeRadishServer(t, dummyStorage)
+		defer server.Close()
+		go func() {
+			server.Listen()
+		}()
+		client := makeRedisClient(6379)
+		defer client.Close()
+
+		got := client.Get("somekey")
+		if got.Err() != redis.Nil {
+			t.Errorf("got '%v' but wanted nil", got)
+		}
+	})
+
+	t.Run("it fetches value with GET", func(t *testing.T) {
+		mockStorage := make(map[string]string)
+		mockStorage["somekey"] = "somevalue"
+		server := mustMakeRadishServer(t, mockStorage)
+		defer server.Close()
+		go func() {
+			server.Listen()
+		}()
+		client := makeRedisClient(6379)
+		defer client.Close()
+
+		got := client.Get("somekey").Val()
+		assertResponse(t, got, "somevalue")
+	})
 }
 
-func mustMakeRadishServer(t testing.TB) *radish.RadishServer {
+func mustMakeRadishServer(t testing.TB, storage map[string]string) *radish.RadishServer {
 	t.Helper()
 
-	server, err := radish.NewRadishServer(6379)
+	server, err := radish.NewRadishServer(6379, storage)
 	if err != nil {
 		t.Fatalf("Failed to start server: %v", err)
 	}

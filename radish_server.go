@@ -10,9 +10,10 @@ import (
 type RadishServer struct {
 	listener    net.Listener
 	connClients map[net.Conn]*client
+	storage     map[string]string
 }
 
-func NewRadishServer(port int) (*RadishServer, error) {
+func NewRadishServer(port int, keyValueStorage map[string]string) (*RadishServer, error) {
 	l, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to bind to port %d, %v", port, err)
@@ -21,6 +22,7 @@ func NewRadishServer(port int) (*RadishServer, error) {
 	return &RadishServer{
 		listener:    l,
 		connClients: make(map[net.Conn]*client),
+		storage:     keyValueStorage,
 	}, nil
 }
 
@@ -79,11 +81,11 @@ func (r *RadishServer) handleClient(client *client) {
 			break
 		}
 
-		handleCommand(client, command)
+		r.handleCommand(client, command)
 	}
 }
 
-func handleCommand(client *client, command *command) {
+func (r *RadishServer) handleCommand(client *client, command *command) {
 
 	switch strings.ToUpper(command.action) {
 	case "PING":
@@ -92,6 +94,19 @@ func handleCommand(client *client, command *command) {
 		firstArg := command.args[0]
 		response := fmt.Sprintf("+%s\r\n", firstArg)
 		client.write(response)
+	case "GET":
+		key := command.args[0]
+		keyString, ok := key.(string)
+		if !ok {
+			client.write(fmt.Sprintf("-ERR unknown key '%v'\r\n", key))
+			return
+		}
+		value, ok := r.storage[keyString]
+		if !ok {
+			client.write("$-1\r\n")
+			return
+		}
+		client.write(fmt.Sprintf("+%s\r\n", value))
 	default:
 		response := fmt.Sprintf("-ERR unknown command '%s'\r\n", command.action)
 		client.write(response)
