@@ -47,7 +47,9 @@ func TestRadishServer(t *testing.T) {
 		}()
 
 		client1 := makeRedisClient(6379)
+		defer client1.Close()
 		client2 := makeRedisClient(6379)
+		defer client2.Close()
 
 		assertResponse(t, client1.Ping().Val(), "PONG")
 		assertResponse(t, client2.Ping().Val(), "PONG")
