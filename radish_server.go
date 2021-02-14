@@ -7,8 +7,8 @@ import (
 )
 
 type RadishServer struct {
-	listener net.Listener
-	clients  []net.Conn
+	listener    net.Listener
+	connClients map[net.Conn]*client
 }
 
 func NewRadishServer(port int) (*RadishServer, error) {
@@ -18,7 +18,8 @@ func NewRadishServer(port int) (*RadishServer, error) {
 	}
 
 	return &RadishServer{
-		listener: l,
+		listener:    l,
+		connClients: make(map[net.Conn]*client),
 	}, nil
 }
 
@@ -37,7 +38,7 @@ func (r *RadishServer) Listen() {
 			serverChan <- conn
 		}()
 
-		for _, conn := range r.clients {
+		for conn, _ := range r.connClients {
 			go func(conn net.Conn) {
 				buf := make([]byte, 0)
 				conn.Read(buf)
@@ -47,9 +48,10 @@ func (r *RadishServer) Listen() {
 
 		select {
 		case newConn := <-serverChan:
-			r.clients = append(r.clients, newConn)
+			r.connClients[newConn] = newClient(newConn)
 		case existingConn := <-connChan:
-			handleConnection(existingConn)
+			client := r.connClients[existingConn]
+			handleClient(client)
 		}
 	}
 }
@@ -58,9 +60,7 @@ func (r *RadishServer) Close() {
 	r.listener.Close()
 }
 
-func handleConnection(conn net.Conn) {
-	buf := make([]byte, 128)
-	conn.Read(buf)
-
-	conn.Write([]byte("+PONG\r\n"))
+func handleClient(client *client) {
+	client.readAvailable()
+	client.write("+PONG\r\n")
 }
