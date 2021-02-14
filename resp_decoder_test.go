@@ -1,6 +1,7 @@
 package radish
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -16,7 +17,7 @@ func TestRESPSimpleStrings(t *testing.T) {
 
 		for _, c := range cases {
 			got, _ := Decode(c.input)
-			assertEqual(t, got, c.want)
+			assertStringEqual(t, got, c.want)
 		}
 	})
 
@@ -43,7 +44,7 @@ func TestRESPBulkStrings(t *testing.T) {
 
 		for _, c := range cases {
 			got, _ := Decode(c.input)
-			assertEqual(t, got, c.want)
+			assertStringEqual(t, got, c.want)
 		}
 	})
 
@@ -57,7 +58,8 @@ func TestRESPBulkStrings(t *testing.T) {
 	})
 }
 
-func assertEqual(t testing.TB, got, want string) {
+
+func assertStringEqual(t testing.TB, got, want string) {
 	t.Helper()
 
 	if got != want {
