@@ -12,11 +12,8 @@ var dummyStorage = make(map[string]string)
 
 func TestRadishServer(t *testing.T) {
 	t.Run("it responds PONG to the PING command", func(t *testing.T) {
-		server := mustMakeRadishServer(t, dummyStorage)
+		server := mustMakeStartRadishServer(t, dummyStorage)
 		defer server.Close()
-		go func() {
-			server.Listen()
-		}()
 		client := makeRedisClient(6379)
 		defer client.Close()
 
@@ -26,11 +23,8 @@ func TestRadishServer(t *testing.T) {
 	})
 
 	t.Run("it responds to multiple commands from the same client", func(t *testing.T) {
-		server := mustMakeRadishServer(t, dummyStorage)
+		server := mustMakeStartRadishServer(t, dummyStorage)
 		defer server.Close()
-		go func() {
-			server.Listen()
-		}()
 		client := makeRedisClient(6379)
 		defer client.Close()
 
@@ -42,12 +36,8 @@ func TestRadishServer(t *testing.T) {
 	})
 
 	t.Run("it allows multiple clients to send commands", func(t *testing.T) {
-		server := mustMakeRadishServer(t, dummyStorage)
+		server := mustMakeStartRadishServer(t, dummyStorage)
 		defer server.Close()
-		go func() {
-			server.Listen()
-		}()
-
 		client1 := makeRedisClient(6379)
 		defer client1.Close()
 		client2 := makeRedisClient(6379)
@@ -58,11 +48,8 @@ func TestRadishServer(t *testing.T) {
 	})
 
 	t.Run("it responds to ECHO", func(t *testing.T) {
-		server := mustMakeRadishServer(t, dummyStorage)
+		server := mustMakeStartRadishServer(t, dummyStorage)
 		defer server.Close()
-		go func() {
-			server.Listen()
-		}()
 		client := makeRedisClient(6379)
 		defer client.Close()
 
@@ -71,11 +58,8 @@ func TestRadishServer(t *testing.T) {
 	})
 
 	t.Run("it gets nil value with GET when data does not exist", func(t *testing.T) {
-		server := mustMakeRadishServer(t, dummyStorage)
+		server := mustMakeStartRadishServer(t, dummyStorage)
 		defer server.Close()
-		go func() {
-			server.Listen()
-		}()
 		client := makeRedisClient(6379)
 		defer client.Close()
 
@@ -88,11 +72,8 @@ func TestRadishServer(t *testing.T) {
 	t.Run("it fetches value with GET", func(t *testing.T) {
 		mockStorage := make(map[string]string)
 		mockStorage["somekey"] = "somevalue"
-		server := mustMakeRadishServer(t, mockStorage)
+		server := mustMakeStartRadishServer(t, mockStorage)
 		defer server.Close()
-		go func() {
-			server.Listen()
-		}()
 		client := makeRedisClient(6379)
 		defer client.Close()
 
@@ -102,11 +83,8 @@ func TestRadishServer(t *testing.T) {
 
 	t.Run("it saves value with SET", func(t *testing.T) {
 		spyStorage := make(map[string]string)
-		server := mustMakeRadishServer(t, spyStorage)
+		server := mustMakeStartRadishServer(t, spyStorage)
 		defer server.Close()
-		go func() {
-			server.Listen()
-		}()
 		client := makeRedisClient(6379)
 		defer client.Close()
 
@@ -118,13 +96,17 @@ func TestRadishServer(t *testing.T) {
 	})
 }
 
-func mustMakeRadishServer(t testing.TB, storage map[string]string) *radish.Server {
+func mustMakeStartRadishServer(t testing.TB, storage map[string]string) *radish.Server {
 	t.Helper()
 
 	server, err := radish.NewServer(6379, storage)
 	if err != nil {
 		t.Fatalf("Failed to start server: %v", err)
 	}
+	go func() {
+		server.Listen()
+	}()
+
 	return server
 }
 
