@@ -1,8 +1,10 @@
-package radish
+package radish_test
 
 import (
 	"reflect"
 	"testing"
+
+	"github.com/Artamus/radish"
 )
 
 func TestRESPSimpleStrings(t *testing.T) {
@@ -13,7 +15,7 @@ func TestRESPSimpleStrings(t *testing.T) {
 		}
 
 		for _, c := range cases {
-			got, _ := Decode(c.encoded)
+			got, _ := radish.Decode(c.encoded)
 			assertDecoded(t, got, c.decoded)
 		}
 	})
@@ -24,7 +26,7 @@ func TestRESPSimpleStrings(t *testing.T) {
 		}
 
 		for _, c := range cases {
-			_, err := Decode(c)
+			_, err := radish.Decode(c)
 			assertIncompleteRESPError(t, err)
 		}
 	})
@@ -37,7 +39,7 @@ func TestRESPBulkStrings(t *testing.T) {
 		}
 
 		for _, c := range cases {
-			got, _ := Decode(c.encoded)
+			got, _ := radish.Decode(c.encoded)
 			assertDecoded(t, got, c.decoded)
 		}
 	})
@@ -46,7 +48,7 @@ func TestRESPBulkStrings(t *testing.T) {
 		cases := []string{"$", "$2", "$2\r", "$2\r\n", "$2\r\nOK", "$2\r\nOK\r"}
 
 		for _, c := range cases {
-			_, err := Decode(c)
+			_, err := radish.Decode(c)
 			assertIncompleteRESPError(t, err)
 		}
 	})
@@ -59,7 +61,7 @@ func TestRESPArrays(t *testing.T) {
 		}
 
 		for _, c := range cases {
-			got, _ := Decode(c.encoded)
+			got, _ := radish.Decode(c.encoded)
 			assertDecoded(t, got, c.decoded)
 		}
 	})
@@ -68,7 +70,7 @@ func TestRESPArrays(t *testing.T) {
 		cases := []string{"*", "*1", "*1\r\n", "*1\r\n$4", "*2\r\n$4\r\nECHO\r\n"}
 
 		for _, c := range cases {
-			_, err := Decode(c)
+			_, err := radish.Decode(c)
 			assertIncompleteRESPError(t, err)
 		}
 	})
@@ -89,7 +91,7 @@ func assertIncompleteRESPError(t testing.TB, err error) {
 		t.Fatal("want error, but got none")
 	}
 
-	if err != ErrIncompleteRESP {
+	if err != radish.ErrIncompleteRESP {
 		t.Errorf("want incomplete resp error, got %v", err)
 	}
 }
